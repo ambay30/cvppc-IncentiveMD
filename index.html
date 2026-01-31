@@ -1624,8 +1624,9 @@
 
             const reader = new FileReader();
 
-            reader.onerror = function() {
-                alert('Error reading file. Please try again.');
+            reader.onerror = function(error) {
+                console.error('File read error:', error);
+                alert('Error reading file. The file may be corrupted or inaccessible.\n\nTroubleshooting:\n• Ensure the file is not open in another program\n• Try saving a copy and uploading that\n• Check file permissions\n• Ensure file is not password-protected');
             };
 
             reader.onload = async function(e) {
@@ -1635,16 +1636,53 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     wb = XLSX.read(data, { type: 'array' });
+
+                    // Check if workbook has sheets
+                    if (!wb.SheetNames || wb.SheetNames.length === 0) {
+                        alert('Error: File contains no worksheets.\n\nPlease ensure the Excel file has at least one worksheet with data.');
+                        return;
+                    }
+
                     rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+
+                    // Check for duplicate column names
+                    if (rows.length > 0) {
+                        const columnNames = Object.keys(rows[0]);
+                        const uniqueNames = new Set(columnNames);
+                        if (columnNames.length !== uniqueNames.size) {
+                            alert(`Warning: File contains duplicate column names.\n\nThis may cause data processing issues. Please ensure all column names are unique.\n\nExcel often adds numbers to duplicate column names (e.g., "Address", "Address1", "Address2").`);
+                            // Don't return - just warn, as XLSX already handles this
+                        }
+                    }
                 } catch (parseError) {
-                    alert('Error parsing file. Please ensure it is a valid Excel or CSV file.');
                     console.error('Parse error:', parseError);
+                    let errorMsg = 'Error parsing file. ';
+
+                    if (parseError.message && parseError.message.includes('Unsupported')) {
+                        errorMsg += 'This file format is not supported.\n\nSupported formats:\n• Excel (.xlsx, .xls)\n• CSV (.csv)\n\nPlease save as one of these formats and try again.';
+                    } else if (parseError.message && parseError.message.includes('encrypted')) {
+                        errorMsg += 'This file appears to be password-protected or encrypted.\n\nPlease remove password protection and try again.';
+                    } else {
+                        errorMsg += 'The file may be corrupted or in an unexpected format.\n\nTroubleshooting:\n• Ensure file is a valid Excel or CSV file\n• Try opening in Excel/Sheets and saving a new copy\n• Remove any special formatting or macros\n• Ensure file is not corrupted';
+                    }
+
+                    alert(errorMsg);
                     return;
                 }
 
                 // Validate content
                 if (!rows || !rows.length) {
-                    alert('No data found in file. Please ensure the file has data rows.');
+                    alert(`No data found in file.
+
+Possible issues:
+• File has no data rows (only headers)
+• Sheet "${wb.SheetNames[0]}" is empty
+• Data starts below row 1 (headers must be in row 1)
+
+Please ensure:
+✓ File has at least one data row below the header row
+✓ Header row is in the first row of the sheet
+✓ Columns have data (not all empty cells)`);
                     return;
                 }
 
@@ -1655,7 +1693,27 @@
 
                 // Check for address columns
                 if (!hasAddressColumns(rows[0])) {
-                    alert('No address columns found. Expected columns: Address, Street, City, State, Zip (or similar names).');
+                    const actualColumns = Object.keys(rows[0]).join(', ');
+                    alert(`No address columns found in uploaded file.
+
+Your file has these columns:
+${actualColumns}
+
+Expected columns (at least one required):
+✓ Full Address: "Address", "Full Address", "Location"
+✓ OR Components: "Street", "City", "State", "Zip"
+
+Supported variations:
+• Address, FullAddress, Complete_Address, Mailing Address
+• Street, Street Address, Street1, Address1, Line1
+• City, Town, Municipality
+• State, ST, Province
+• Zip, ZipCode, Zip_Code, PostalCode
+
+Fix:
+1. Rename columns to match expected names
+2. Ensure first row contains column headers
+3. Data should start in row 2`);
                     return;
                 }
 
@@ -1780,8 +1838,30 @@
 
                 if (results.length > 0) {
                     showResults(errors, skipped);
+
+                    // Show completion summary
+                    if (!batchCancelled) {
+                        const total = results.length;
+                        const succeeded = results.filter(r => !r.error).length;
+                        const eligible = results.filter(r => r.eligible).length;
+
+                        let summaryMsg = `✓ Batch processing complete!\n\n`;
+                        summaryMsg += `Total addresses: ${total}\n`;
+                        summaryMsg += `Successfully geocoded: ${succeeded} (${Math.round((succeeded/total)*100)}%)\n`;
+                        if (errors > 0) summaryMsg += `Failed to geocode: ${errors}\n`;
+                        if (skipped > 0) summaryMsg += `Skipped (empty): ${skipped}\n`;
+                        summaryMsg += `\n30C Eligible: ${eligible} (${Math.round((eligible/total)*100)}%)\n`;
+
+                        if (errors > 0) {
+                            summaryMsg += `\n⚠ ${errors} address${errors > 1 ? 'es' : ''} failed to geocode.\nYou can manually fix failed addresses using the "Fix Failed Addresses" button below.`;
+                        }
+
+                        alert(summaryMsg);
+                    }
                 } else if (skipped > 0) {
-                    alert(`All ${skipped} rows were skipped (empty addresses).`);
+                    alert(`All ${skipped} rows were skipped because they had empty addresses.\n\nPlease check your file:\n• Ensure address columns have data\n• Check for blank rows\n• Verify column names match expected format`);
+                } else if (batchCancelled) {
+                    alert('Batch processing was cancelled.');
                 }
             };
 
