@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OG Image Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .og-card {
+            width: 1200px;
+            height: 630px;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .og-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.03)"/></svg>');
+            background-size: 100px 100px;
+            opacity: 0.5;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 4.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            letter-spacing: -2px;
+            line-height: 1;
+        }
+
+        .tagline {
+            font-size: 2rem;
+            opacity: 0.95;
+            font-weight: 400;
+            max-width: 900px;
+            margin: 0 auto 2rem;
+            line-height: 1.4;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .footer-badge {
+            position: absolute;
+            bottom: 3rem;
+            right: 3rem;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+
+        .instructions {
+            margin-top: 3rem;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            color: #1e293b;
+            max-width: 800px;
+        }
+
+        .instructions h2 {
+            color: #1e40af;
+            margin-bottom: 1rem;
+        }
+
+        .instructions ol {
+            margin-left: 1.5rem;
+            line-height: 1.8;
+        }
+
+        .instructions code {
+            background: #f1f5f9;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="og-card" id="og-card">
+        <div class="content">
+            <div class="logo">🔌</div>
+            <h1>IncentiveMD</h1>
+            <p class="tagline">Check 30C Tax Credit Eligibility for Any US Location Instantly</p>
+            <div class="badge">✓ IRS Appendix B Verified</div>
+        </div>
+        <div class="footer-badge">A Product of ChargeCatalyst</div>
+    </div>
+
+    <div class="instructions">
+        <h2>📸 How to Generate the OG Image</h2>
+        <ol>
+            <li>Open this file in a browser (you're here now!)</li>
+            <li>Take a screenshot of the blue card above that is exactly <strong>1200x630 pixels</strong></li>
+            <li><strong>Option 1 - macOS:</strong>
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li>Use screenshot tool: Press <code>Cmd + Shift + 4</code>, then press <code>Space</code>, click the card</li>
+                    <li>OR use browser DevTools: Open DevTools → Cmd+Shift+P → "Capture screenshot" → "Capture node screenshot" (select the og-card element)</li>
+                </ul>
+            </li>
+            <li><strong>Option 2 - Windows:</strong>
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li>Use Snipping Tool or browser DevTools screenshot feature</li>
+                </ul>
+            </li>
+            <li><strong>Option 3 - Use Online Tool:</strong>
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li>Visit: <a href="https://www.bannerbear.com/demos/html-to-image/" target="_blank">bannerbear.com/demos/html-to-image</a></li>
+                    <li>Copy the HTML from this file's source</li>
+                    <li>Paste and generate image</li>
+                </ul>
+            </li>
+            <li>Save the image as <code>og-image.png</code> in the repository root</li>
+            <li>Commit and push to GitHub</li>
+            <li>The image will be available at: <code>https://ambay30.github.io/cvppc-IncentiveMD/og-image.png</code></li>
+        </ol>
+
+        <h2 style="margin-top: 2rem;">🔍 Verify the Preview</h2>
+        <p>After uploading the image, test how it looks when shared:</p>
+        <ul style="margin-left: 1.5rem; line-height: 1.8;">
+            <li><strong>Facebook/iMessage:</strong> <a href="https://developers.facebook.com/tools/debug/" target="_blank">Facebook Sharing Debugger</a></li>
+            <li><strong>Twitter:</strong> <a href="https://cards-dev.twitter.com/validator" target="_blank">Twitter Card Validator</a></li>
+            <li><strong>LinkedIn:</strong> <a href="https://www.linkedin.com/post-inspector/" target="_blank">LinkedIn Post Inspector</a></li>
+        </ul>
+    </div>
+
+    <script>
+        // Log the dimensions for verification
+        const card = document.getElementById('og-card');
+        console.log(`OG Card dimensions: ${card.offsetWidth}x${card.offsetHeight}px`);
+        console.log('Expected: 1200x630px for optimal Open Graph display');
+    </script>
+</body>
+</html>

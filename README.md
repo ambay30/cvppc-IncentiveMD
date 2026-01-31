@@ -16,6 +16,8 @@ A cloud-hosted tool for checking IRS 30C Alternative Fuel Vehicle Refueling Prop
 - **Batch Processing**: Upload CSV files with up to 1,000 addresses
 - **Manual Override**: Add custom census tracts for special cases
 - **CSV Export**: Export results with coordinates and eligibility status
+- **Mobile-First Design**: Optimized for smartphones with touch-friendly controls
+- **Social Sharing**: Rich preview cards when shared via text/social media
 
 ## Eligibility Types
 
@@ -35,8 +37,15 @@ A cloud-hosted tool for checking IRS 30C Alternative Fuel Vehicle Refueling Prop
 - **Hosting**: Render.com at `https://cvppc-incentivemd.onrender.com`
 - **Purpose**: Proxy Census Bureau API requests to add CORS headers
 - **Endpoints**:
+  - `/health` - Health check endpoint (returns `{"status":"ok","version":"1.0"}`)
   - `/api/geocode?address=...` - Forward geocoding (address → coordinates)
   - `/api/geocode-reverse?lat=...&lng=...` - Reverse geocoding (coordinates → census tract)
+- **Security**:
+  - Rate limiting: 30 requests per minute per IP
+  - Input sanitization to prevent injection attacks
+  - Request size limits (2000 char max URI)
+  - Static file serving disabled in production
+  - Sanitized error messages
 
 ## Local Development
 
@@ -171,6 +180,10 @@ Internal use - Commercial Vehicle Parking & Power Collective (CVPPC)
   - Batch processing (up to 5,000 addresses)
   - Manual census tract override feature
   - CSV export with coordinates
+  - **Mobile-first responsive design** (optimized for smartphones)
+  - **Security hardening** (rate limiting, input sanitization, error message sanitization)
+  - **Social media integration** (Open Graph tags for rich previews)
+  - **Health monitoring** endpoint for uptime tracking
 
 ## Credits
 
