@@ -2045,12 +2045,16 @@ Fix:
 
         // Show results
         function showResults(errors = 0, skipped = 0) {
+            console.log(`showResults called: ${results.length} results, ${errors} errors, ${skipped} skipped`);
+
             const eligible = results.filter(r => r.eligible).length;
             const total = results.length;
             const duplicates = results.filter(r => r.duplicate).length;
             const succeeded = results.filter(r => !r.error).length;
             const geocodeRate = total ? Math.round((succeeded / total) * 100) : 0;
             const eligibilityRate = total ? Math.round((eligible / total) * 100) : 0;
+
+            console.log(`Stats: total=${total}, eligible=${eligible}, succeeded=${succeeded}`);
 
             document.getElementById('stat-total').textContent = total;
             document.getElementById('stat-geocoded').textContent = `${geocodeRate}%`;
@@ -2075,7 +2079,7 @@ Fix:
                 geocodeStat.classList.add('not-eligible');
             }
 
-            document.getElementById('results-table').innerHTML = results.map(r => `
+            const tableHTML = results.map(r => `
                 <tr${r.error ? ' style="background: #fef2f2;"' : (r.duplicate ? ' style="background: #fefce8;"' : (r.manuallyFixed ? ' style="background: #dbeafe;"' : ''))}>
                     <td>${r.index}</td>
                     <td>
@@ -2091,6 +2095,9 @@ Fix:
                 </tr>
             `).join('');
 
+            console.log(`Populating table with ${results.length} rows`);
+            document.getElementById('results-table').innerHTML = tableHTML;
+
             // Show/hide fix failed addresses button
             const failedCount = results.filter(r => r.error).length;
             const fixSection = document.getElementById('fix-failed-section');
@@ -2101,7 +2108,10 @@ Fix:
                 fixSection.classList.add('hidden');
             }
 
-            document.getElementById('results-section').classList.remove('hidden');
+            console.log('Unhiding results section');
+            const resultsSection = document.getElementById('results-section');
+            resultsSection.classList.remove('hidden');
+            console.log(`Results section display: ${window.getComputedStyle(resultsSection).display}`);
 
             // Initialize map
             initBatchMap();
