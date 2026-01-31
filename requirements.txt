@@ -1,0 +1,8 @@
+# No external dependencies required
+# serve.py uses only Python standard library modules:
+# - http.server
+# - socketserver
+# - urllib
+# - json
+# - os
+# - re
