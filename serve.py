@@ -20,6 +20,16 @@ import re
 
 PORT = int(os.environ.get('PORT', 8090))
 
+# CORS configuration - supports local development and production
+ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', 'https://ambay30.github.io,http://localhost:8090,http://127.0.0.1:8090').split(',')
+
+def get_cors_origin(request_origin):
+    """Return appropriate CORS origin based on request"""
+    if request_origin in ALLOWED_ORIGINS:
+        return request_origin
+    # Default to production origin
+    return 'https://ambay30.github.io'
+
 
 class ProxyHandler(http.server.SimpleHTTPRequestHandler):
     # Reduce server banner verbosity for security
@@ -70,7 +80,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 census_url, headers={"User-Agent": "IncentiveMD/1.0"}
             )
 
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.urlopen(req, timeout=15) as response:
                 data = response.read()
                 response_json = json.loads(data)
 
@@ -122,15 +132,16 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                                 component_url, headers={"User-Agent": "IncentiveMD/1.0"}
                             )
 
-                            with urllib.request.urlopen(req2, timeout=30) as response2:
+                            with urllib.request.urlopen(req2, timeout=15) as response2:
                                 data = response2.read()
                                 response_json = json.loads(data)
 
                 self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "https://ambay30.github.io")
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                origin = self.headers.get('Origin', '')
+                self.send_header("Access-Control-Allow-Origin", get_cors_origin(origin))
                 self.end_headers()
-                self.wfile.write(json.dumps(response_json).encode())
+                self.wfile.write(json.dumps(response_json).encode('utf-8'))
 
         except urllib.error.URLError as e:
             self.send_response(502)
@@ -189,10 +200,11 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 response_json = json.loads(data)
 
             self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "https://ambay30.github.io")
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            origin = self.headers.get('Origin', '')
+            self.send_header("Access-Control-Allow-Origin", get_cors_origin(origin))
             self.end_headers()
-            self.wfile.write(json.dumps(response_json).encode())
+            self.wfile.write(json.dumps(response_json).encode('utf-8'))
 
         except urllib.error.URLError as e:
             self.send_response(502)
