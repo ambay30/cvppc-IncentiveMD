@@ -1,4 +1,4 @@
-# IncentiveMD v3.18.2
+# IncentiveMD v1.0
 
 **30C Tax Credit Eligibility Checker**
 
@@ -162,10 +162,15 @@ Internal use - Commercial Vehicle Parking & Power Collective (CVPPC)
 
 ## Version History
 
-- **v3.18.2** (2026-01-30): Cloud deployment with inline data
-- **v3.18.0** (2026-01-28): Manual override, map visualization
-- **v3.17.0** (2026-01-25): Batch CSV processing
-- **v3.16.0** (2026-01-20): Initial release
+- **v1.0** (2026-01-30): Public release
+  - Cloud-hosted deployment (GitHub Pages + Render)
+  - 55,474 inline eligible census tracts
+  - Enhanced Excel/CSV validation and error handling
+  - Census Bureau API geocoding with 6-level fallback
+  - Interactive map visualization
+  - Batch processing (up to 5,000 addresses)
+  - Manual census tract override feature
+  - CSV export with coordinates
 
 ## Credits
 
