@@ -1277,7 +1277,7 @@
             if (type === 'NMTC') return 'Low-Income';
             if (type === 'NON_URBAN') return 'Non-Urban';
             if (type === 'BOTH') return 'Both';
-            return '-';
+            return 'N/A';
         }
 
         // Check single address
@@ -2090,8 +2090,8 @@ Fix:
                     </td>
                     <td><span class="badge ${r.eligible ? 'badge-green' : 'badge-red'}">${r.eligible ? '✓ Yes' : (r.error ? '⚠ Error' : '✗ No')}</span></td>
                     <td><span class="badge badge-blue">${formatType(r.type)}</span></td>
-                    <td>${r.validThrough || '-'}</td>
-                    <td style="font-family: monospace; font-size: 0.8rem">${r.geoid || '-'}</td>
+                    <td>${r.validThrough || 'N/A'}</td>
+                    <td style="font-family: monospace; font-size: 0.8rem">${r.geoid || 'N/A'}</td>
                 </tr>
             `).join('');
 
@@ -2312,8 +2312,8 @@ Fix:
                     </td>
                     <td><span class="badge ${r.eligible ? 'badge-green' : 'badge-red'}">${r.eligible ? '✓ Yes' : (r.error ? '⚠ Error' : '✗ No')}</span></td>
                     <td><span class="badge badge-blue">${formatType(r.type)}</span></td>
-                    <td>${r.validThrough || '-'}</td>
-                    <td style="font-family: monospace; font-size: 0.8rem">${r.geoid || '-'}</td>
+                    <td>${r.validThrough || 'N/A'}</td>
+                    <td style="font-family: monospace; font-size: 0.8rem">${r.geoid || 'N/A'}</td>
                 </tr>
             `).join('');
 
