@@ -2,6 +2,12 @@
 """
 IncentiveMD Server with Census API Proxy
 Run this script and open http://localhost:8090 in your browser
+
+PRODUCTION NOTES:
+- Uses ThreadingMixIn for concurrent request handling
+- No external dependencies (Python stdlib only)
+- Suitable for light-to-moderate traffic on Render.com free tier
+- For high-traffic production, consider Gunicorn + Flask/FastAPI
 """
 
 import http.server
@@ -16,6 +22,15 @@ PORT = int(os.environ.get('PORT', 8090))
 
 
 class ProxyHandler(http.server.SimpleHTTPRequestHandler):
+    # Reduce server banner verbosity for security
+    server_version = "IncentiveMD/1.0"
+    sys_version = ""
+
+    def log_message(self, format, *args):
+        """Override to add request logging with timestamps"""
+        # In production, consider logging to file instead of stdout
+        print(f"[{self.log_date_time_string()}] {format % args}")
+
     def do_GET(self):
         # Handle Census API proxy requests
         if self.path.startswith("/api/geocode-reverse"):
@@ -35,6 +50,11 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
 
             if not address:
                 self.send_error(400, "Missing address parameter")
+                return
+
+            # Validate address length to prevent abuse
+            if len(address) > 500:
+                self.send_error(400, "Address too long (max 500 characters)")
                 return
 
             # Try primary method: onelineaddress endpoint
@@ -136,6 +156,20 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(400, "Missing lat or lng parameter")
                 return
 
+            # Validate coordinate ranges to prevent abuse
+            try:
+                lat_float = float(lat)
+                lng_float = float(lng)
+                if not (-90 <= lat_float <= 90):
+                    self.send_error(400, "Latitude must be between -90 and 90")
+                    return
+                if not (-180 <= lng_float <= 180):
+                    self.send_error(400, "Longitude must be between -180 and 180")
+                    return
+            except ValueError:
+                self.send_error(400, "Invalid coordinate format")
+                return
+
             # Census reverse geocoding endpoint
             census_url = (
                 f"https://geocoding.geo.census.gov/geocoder/geographies/coordinates"
@@ -171,17 +205,34 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
 
+# Threaded server for concurrent request handling
+class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    """
+    Multi-threaded TCP server that handles each request in a separate thread.
+
+    This prevents the server from blocking when waiting for Census API responses.
+    Critical for batch processing where multiple geocoding requests are made.
+
+    ThreadingMixIn is part of Python's standard library (no external dependencies).
+    """
+    # Allow reusing the address immediately after restart (prevents "Address already in use" errors)
+    allow_reuse_address = True
+    # Daemon threads automatically terminate when main thread exits
+    daemon_threads = True
+
+
 # Change to the directory containing this script
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 print(f"\n{'='*50}")
-print("  IncentiveMD Server Running")
+print("  IncentiveMD Server Running (Multi-threaded)")
 print(f"{'='*50}")
 print(f"\n  Open in browser: http://localhost:{PORT}")
+print(f"  Mode: {'Production (Render)' if os.environ.get('PORT') else 'Development (Local)'}")
 print("\n  Press Ctrl+C to stop the server")
 print(f"{'='*50}\n")
 
-with socketserver.TCPServer(("", PORT), ProxyHandler) as httpd:
+with ThreadedTCPServer(("", PORT), ProxyHandler) as httpd:
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
