@@ -2110,6 +2110,7 @@ Fix:
 
             console.log('Unhiding results section');
             const resultsSection = document.getElementById('results-section');
+            resultsSection.style.display = '';  // Clear any inline style
             resultsSection.classList.remove('hidden');
             console.log(`Results section display: ${window.getComputedStyle(resultsSection).display}`);
 
@@ -2599,7 +2600,7 @@ Fix:
             // Clear batch results
             const resultsSection = document.getElementById('results-section');
             if (resultsSection) {
-                resultsSection.style.display = 'none';
+                resultsSection.classList.add('hidden');
             }
 
             // Clear batch map
