@@ -1212,7 +1212,7 @@
                 // Use inline data if available (cloud deployment)
                 if (typeof INLINE_ELIGIBLE_TRACTS !== 'undefined') {
                     eligibleTracts = INLINE_ELIGIBLE_TRACTS;
-                    console.log(`Loaded ${Object.keys(eligibleTracts).length} eligible tracts (inline)`);
+                    // console.log(`Loaded ${Object.keys(eligibleTracts).length} eligible tracts (inline)`);
                 } else {
                     // Fallback to fetch for local development
                     const res = await fetch('data/eligible_tracts_30c.json');
@@ -1224,10 +1224,10 @@
                         throw new Error('Invalid data format');
                     }
                     eligibleTracts = data.tracts;
-                    console.log(`Loaded ${Object.keys(eligibleTracts).length} eligible tracts (fetched)`);
+                    // console.log(`Loaded ${Object.keys(eligibleTracts).length} eligible tracts (fetched)`);
                 }
             } catch (e) {
-                console.error('Failed to load data:', e);
+                // console.error('Failed to load data:', e);
                 dataLoadError = e.message;
                 const banner = document.createElement('div');
                 banner.style.cssText = 'background: #fef2f2; color: #991b1b; padding: 1rem; text-align: center; font-weight: 600;';
@@ -1665,7 +1665,7 @@
                             const lat = coords.y || null;
                             const lng = coords.x || null;
 
-                            console.log(`✓ Geocoded: "${address}" -> ${tracts[0].GEOID}${lat && lng ? ` (${lat.toFixed(6)}, ${lng.toFixed(6)})` : ''}`);
+                            // console.log(`✓ Geocoded: "${address}" -> ${tracts[0].GEOID}${lat && lng ? ` (${lat.toFixed(6)}, ${lng.toFixed(6)})` : ''}`);
                             return {
                                 success: true,
                                 geoid: tracts[0].GEOID,
@@ -1674,10 +1674,10 @@
                                 lng: lng
                             };
                         } else {
-                            console.log(`⚠ No Census Tract for: "${address}" (match found but no tract data)`);
+                            // console.log(`⚠ No Census Tract for: "${address}" (match found but no tract data)`);
                         }
                     } else {
-                        console.log(`⚠ No match found for: "${address}" (attempt ${attempt + 1}/${retries + 1})`);
+                        // console.log(`⚠ No match found for: "${address}" (attempt ${attempt + 1}/${retries + 1})`);
                     }
 
                     // No matches found - might retry below without ZIP
@@ -1748,10 +1748,10 @@
 
                 // Try each fallback strategy
                 for (const strategy of fallbackStrategies) {
-                    console.log(`Trying fallback strategy "${strategy.name}": "${strategy.addr}"`);
+                    // console.log(`Trying fallback strategy "${strategy.name}": "${strategy.addr}"`);
                     const result = await geocodeWithTimeout(strategy.addr, timeout, retries, false);
                     if (result.success) {
-                        console.log(`✓ Success with strategy: ${strategy.name}`);
+                        // console.log(`✓ Success with strategy: ${strategy.name}`);
                         return result;
                     }
                 }
@@ -1800,7 +1800,7 @@
             const reader = new FileReader();
 
             reader.onerror = function(error) {
-                console.error('File read error:', error);
+                // console.error('File read error:', error);
                 alert('Error reading file. The file may be corrupted or inaccessible.\n\nTroubleshooting:\n• Ensure the file is not open in another program\n• Try saving a copy and uploading that\n• Check file permissions\n• Ensure file is not password-protected');
             };
 
@@ -1830,7 +1830,7 @@
                         }
                     }
                 } catch (parseError) {
-                    console.error('Parse error:', parseError);
+                    // console.error('Parse error:', parseError);
                     let errorMsg = 'Error parsing file. ';
 
                     if (parseError.message && parseError.message.includes('Unsupported')) {
@@ -1985,9 +1985,9 @@ Fix:
 
                     if (!geo.success) {
                         errors++;
-                        console.error(`[${i + 1}/${rows.length}] FAILED: "${addr}" - ${geo.error}`);
+                        // console.error(`[${i + 1}/${rows.length}] FAILED: "${addr}" - ${geo.error}`);
                     } else {
-                        console.log(`[${i + 1}/${rows.length}] SUCCESS: "${addr}" -> ${geo.geoid}`);
+                        // console.log(`[${i + 1}/${rows.length}] SUCCESS: "${addr}" -> ${geo.geoid}`);
                     }
 
                     results.push({
@@ -2045,7 +2045,7 @@ Fix:
 
         // Show results
         function showResults(errors = 0, skipped = 0) {
-            console.log(`showResults called: ${results.length} results, ${errors} errors, ${skipped} skipped`);
+            // console.log(`showResults called: ${results.length} results, ${errors} errors, ${skipped} skipped`);
 
             const eligible = results.filter(r => r.eligible).length;
             const total = results.length;
@@ -2054,7 +2054,7 @@ Fix:
             const geocodeRate = total ? Math.round((succeeded / total) * 100) : 0;
             const eligibilityRate = total ? Math.round((eligible / total) * 100) : 0;
 
-            console.log(`Stats: total=${total}, eligible=${eligible}, succeeded=${succeeded}`);
+            // console.log(`Stats: total=${total}, eligible=${eligible}, succeeded=${succeeded}`);
 
             document.getElementById('stat-total').textContent = total;
             document.getElementById('stat-geocoded').textContent = `${geocodeRate}%`;
@@ -2095,7 +2095,7 @@ Fix:
                 </tr>
             `).join('');
 
-            console.log(`Populating table with ${results.length} rows`);
+            // console.log(`Populating table with ${results.length} rows`);
             document.getElementById('results-table').innerHTML = tableHTML;
 
             // Show/hide fix failed addresses button
@@ -2108,11 +2108,11 @@ Fix:
                 fixSection.classList.add('hidden');
             }
 
-            console.log('Unhiding results section');
+            // console.log('Unhiding results section');
             const resultsSection = document.getElementById('results-section');
             resultsSection.style.display = '';  // Clear any inline style
             resultsSection.classList.remove('hidden');
-            console.log(`Results section display: ${window.getComputedStyle(resultsSection).display}`);
+            // console.log(`Results section display: ${window.getComputedStyle(resultsSection).display}`);
 
             // Initialize map
             initBatchMap();
@@ -2272,7 +2272,7 @@ Fix:
                 results[resultIndex].type = elig.type;
                 results[resultIndex].validThrough = elig.validThrough;
 
-                console.log(`✓ Manual fix applied: ${lat}, ${lng} → ${geoid} (${elig.eligible ? 'Eligible' : 'Not eligible'})`);
+                // console.log(`✓ Manual fix applied: ${lat}, ${lng} → ${geoid} (${elig.eligible ? 'Eligible' : 'Not eligible'})`);
                 return true;
             } catch (e) {
                 alert('Error looking up census tract: ' + e.message);
@@ -2458,7 +2458,7 @@ Fix:
                     `Showing ${resultsWithCoords.length} locations (${eligibleCount} eligible)`;
 
             } catch (e) {
-                console.error('Failed to load map:', e);
+                // console.error('Failed to load map:', e);
                 document.getElementById('map-section').classList.add('hidden');
             }
         }
@@ -2532,7 +2532,7 @@ Fix:
                     `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
             } catch (e) {
-                console.error('Failed to load single address map:', e);
+                // console.error('Failed to load single address map:', e);
                 document.getElementById('single-map-section').classList.add('hidden');
             }
         }
