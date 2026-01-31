@@ -2031,7 +2031,7 @@ Fix:
                             summaryMsg += `\n⚠ ${errors} address${errors > 1 ? 'es' : ''} failed to geocode.\nYou can manually fix failed addresses using the "Fix Failed Addresses" button below.`;
                         }
 
-                        alert(summaryMsg);
+                        // alert(summaryMsg);
                     }
                 } else if (skipped > 0) {
                     alert(`All ${skipped} rows were skipped because they had empty addresses.\n\nPlease check your file:\n• Ensure address columns have data\n• Check for blank rows\n• Verify column names match expected format`);
