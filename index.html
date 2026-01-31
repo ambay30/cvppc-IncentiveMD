@@ -1004,7 +1004,7 @@
 
         <!-- Batch Upload Panel -->
         <div id="panel-batch" class="panel">
-            <div class="card">
+            <div class="card" id="upload-card">
                 <div class="card-title">Upload Locations File</div>
                 <div class="upload-area" id="drop-zone">
                     <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
@@ -1033,7 +1033,12 @@
 
         <!-- Results Section -->
         <div id="results-section" class="results-section hidden">
-            <h2>Results Summary</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0;">Results Summary</h2>
+                <button class="btn btn-secondary" id="upload-new-btn" onclick="showUploadSection()">
+                    📁 Upload New File
+                </button>
+            </div>
 
             <div class="stats">
                 <div class="stat">
@@ -2114,6 +2119,9 @@ Fix:
             resultsSection.classList.remove('hidden');
             // console.log(`Results section display: ${window.getComputedStyle(resultsSection).display}`);
 
+            // Hide upload card after results are shown
+            document.getElementById('upload-card').classList.add('hidden');
+
             // Initialize map
             initBatchMap();
         }
@@ -2622,6 +2630,21 @@ Fix:
 
             // Reset results array
             results = [];
+        }
+
+        // Show upload section (called when user clicks "Upload New File")
+        function showUploadSection() {
+            // Show upload card
+            document.getElementById('upload-card').classList.remove('hidden');
+
+            // Hide results section
+            document.getElementById('results-section').classList.add('hidden');
+
+            // Clear all results
+            clearAllResults();
+
+            // Scroll to top of page
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // Init
