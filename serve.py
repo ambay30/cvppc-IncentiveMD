@@ -144,15 +144,23 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps(response_json).encode('utf-8'))
 
         except urllib.error.URLError as e:
-            self.send_response(502)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)}).encode())
+            try:
+                self.send_response(502)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            except (BrokenPipeError, ConnectionResetError):
+                # Client disconnected, nothing to send
+                pass
         except Exception as e:
-            self.send_response(500)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)}).encode())
+            try:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            except (BrokenPipeError, ConnectionResetError):
+                # Client disconnected, nothing to send
+                pass
 
     def handle_geocode_reverse(self):
         """Reverse geocode: coordinates → census tract"""
@@ -207,15 +215,23 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(response_json).encode('utf-8'))
 
         except urllib.error.URLError as e:
-            self.send_response(502)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)}).encode())
+            try:
+                self.send_response(502)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            except (BrokenPipeError, ConnectionResetError):
+                # Client disconnected, nothing to send
+                pass
         except Exception as e:
-            self.send_response(500)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)}).encode())
+            try:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            except (BrokenPipeError, ConnectionResetError):
+                # Client disconnected, nothing to send
+                pass
 
 # Threaded server for concurrent request handling
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
