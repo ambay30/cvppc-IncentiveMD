@@ -17,8 +17,17 @@ import urllib.parse
 import json
 import os
 import re
+import time
+from collections import defaultdict
+from threading import Lock
 
 PORT = int(os.environ.get('PORT', 8090))
+
+# Rate limiting configuration
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX_REQUESTS = 30  # requests per window per IP
+rate_limit_data = defaultdict(list)
+rate_limit_lock = Lock()
 
 # CORS configuration - supports local development and production
 ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', 'https://ambay30.github.io,http://localhost:8090,http://127.0.0.1:8090').split(',')
@@ -30,6 +39,37 @@ def get_cors_origin(request_origin):
     # Default to production origin
     return 'https://ambay30.github.io'
 
+def sanitize_input(text, max_length=500):
+    """Sanitize input to prevent injection attacks"""
+    if not text:
+        return ""
+    # Remove null bytes and control characters
+    text = ''.join(char for char in text if ord(char) >= 32 or char in '\t\n\r')
+    # Truncate to max length
+    text = text[:max_length]
+    return text.strip()
+
+def check_rate_limit(ip_address):
+    """Check if IP has exceeded rate limit. Returns (allowed, retry_after)"""
+    current_time = time.time()
+
+    with rate_limit_lock:
+        # Clean old entries
+        rate_limit_data[ip_address] = [
+            timestamp for timestamp in rate_limit_data[ip_address]
+            if current_time - timestamp < RATE_LIMIT_WINDOW
+        ]
+
+        # Check limit
+        if len(rate_limit_data[ip_address]) >= RATE_LIMIT_MAX_REQUESTS:
+            oldest = min(rate_limit_data[ip_address])
+            retry_after = int(RATE_LIMIT_WINDOW - (current_time - oldest)) + 1
+            return False, retry_after
+
+        # Add current request
+        rate_limit_data[ip_address].append(current_time)
+        return True, 0
+
 
 class ProxyHandler(http.server.SimpleHTTPRequestHandler):
     # Reduce server banner verbosity for security
@@ -38,10 +78,23 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
 
     def log_message(self, format, *args):
         """Override to add request logging with timestamps"""
-        # In production, consider logging to file instead of stdout
-        print(f"[{self.log_date_time_string()}] {format % args}")
+        # Reduce logging verbosity in production
+        if os.environ.get('PORT'):  # Production (Render)
+            # Only log errors and API calls, not static file requests
+            if 'api' in self.path or 'health' in self.path or '40' in format or '50' in format:
+                print(f"[{self.log_date_time_string()}] {format % args}")
+        else:  # Local development
+            print(f"[{self.log_date_time_string()}] {format % args}")
 
     def do_GET(self):
+        # Check request size limit (prevent large query strings)
+        if len(self.path) > 2000:
+            self.send_error(414, "Request-URI Too Long")
+            return
+
+        # Get client IP for rate limiting
+        client_ip = self.client_address[0]
+
         # Health check endpoint for monitoring
         if self.path == "/health":
             self.send_response(200)
@@ -49,14 +102,44 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'{"status":"ok","version":"1.0"}')
             return
+
         # Handle Census API proxy requests
         elif self.path.startswith("/api/geocode-reverse"):
+            # Apply rate limiting
+            allowed, retry_after = check_rate_limit(client_ip)
+            if not allowed:
+                self.send_response(429)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Retry-After", str(retry_after))
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "error": "Rate limit exceeded. Please try again later.",
+                    "retry_after": retry_after
+                }).encode('utf-8'))
+                return
             self.handle_geocode_reverse()
+
         elif self.path.startswith("/api/geocode"):
+            # Apply rate limiting
+            allowed, retry_after = check_rate_limit(client_ip)
+            if not allowed:
+                self.send_response(429)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Retry-After", str(retry_after))
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "error": "Rate limit exceeded. Please try again later.",
+                    "retry_after": retry_after
+                }).encode('utf-8'))
+                return
             self.handle_geocode()
+
         else:
-            # Serve static files
-            super().do_GET()
+            # Disable static file serving in production (security)
+            if os.environ.get('PORT'):  # Production
+                self.send_error(404, "Not Found")
+            else:  # Local development
+                super().do_GET()
 
     def handle_geocode(self):
         try:
@@ -69,7 +152,13 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(400, "Missing address parameter")
                 return
 
-            # Validate address length to prevent abuse
+            # Sanitize and validate input
+            address = sanitize_input(address, max_length=500)
+            if not address:
+                self.send_error(400, "Invalid address parameter")
+                return
+
+            # Additional validation
             if len(address) > 500:
                 self.send_error(400, "Address too long (max 500 characters)")
                 return
@@ -158,7 +247,9 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(e.code)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e), "upstream_code": e.code}).encode('utf-8'))
+                # Sanitize error message - don't leak internal details
+                error_msg = "Geocoding service error" if os.environ.get('PORT') else str(e)
+                self.wfile.write(json.dumps({"error": error_msg, "code": e.code}).encode('utf-8'))
             except (BrokenPipeError, ConnectionResetError):
                 # Client disconnected, nothing to send
                 pass
@@ -168,7 +259,9 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(502)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                # Sanitize error message - don't leak internal details
+                error_msg = "Geocoding service unavailable" if os.environ.get('PORT') else str(e)
+                self.wfile.write(json.dumps({"error": error_msg}).encode('utf-8'))
             except (BrokenPipeError, ConnectionResetError):
                 # Client disconnected, nothing to send
                 pass
@@ -177,7 +270,9 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                # Sanitize error message - don't leak internal details
+                error_msg = "Internal server error" if os.environ.get('PORT') else str(e)
+                self.wfile.write(json.dumps({"error": error_msg}).encode('utf-8'))
             except (BrokenPipeError, ConnectionResetError):
                 # Client disconnected, nothing to send
                 pass
@@ -188,8 +283,8 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             # Parse the coordinates from query string
             parsed = urllib.parse.urlparse(self.path)
             params = urllib.parse.parse_qs(parsed.query)
-            lat = params.get("lat", [""])[0]
-            lng = params.get("lng", [""])[0]
+            lat = sanitize_input(params.get("lat", [""])[0], max_length=20)
+            lng = sanitize_input(params.get("lng", [""])[0], max_length=20)
 
             if not lat or not lng:
                 self.send_error(400, "Missing lat or lng parameter")
@@ -240,7 +335,9 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(e.code)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e), "upstream_code": e.code}).encode('utf-8'))
+                # Sanitize error message - don't leak internal details
+                error_msg = "Geocoding service error" if os.environ.get('PORT') else str(e)
+                self.wfile.write(json.dumps({"error": error_msg, "code": e.code}).encode('utf-8'))
             except (BrokenPipeError, ConnectionResetError):
                 # Client disconnected, nothing to send
                 pass
@@ -250,7 +347,9 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(502)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                # Sanitize error message - don't leak internal details
+                error_msg = "Geocoding service unavailable" if os.environ.get('PORT') else str(e)
+                self.wfile.write(json.dumps({"error": error_msg}).encode('utf-8'))
             except (BrokenPipeError, ConnectionResetError):
                 # Client disconnected, nothing to send
                 pass
@@ -259,7 +358,9 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                # Sanitize error message - don't leak internal details
+                error_msg = "Internal server error" if os.environ.get('PORT') else str(e)
+                self.wfile.write(json.dumps({"error": error_msg}).encode('utf-8'))
             except (BrokenPipeError, ConnectionResetError):
                 # Client disconnected, nothing to send
                 pass
