@@ -42,8 +42,15 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         print(f"[{self.log_date_time_string()}] {format % args}")
 
     def do_GET(self):
+        # Health check endpoint for monitoring
+        if self.path == "/health":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok","version":"1.0"}')
+            return
         # Handle Census API proxy requests
-        if self.path.startswith("/api/geocode-reverse"):
+        elif self.path.startswith("/api/geocode-reverse"):
             self.handle_geocode_reverse()
         elif self.path.startswith("/api/geocode"):
             self.handle_geocode()
@@ -99,8 +106,9 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                         state_zip = parts[-1] if len(parts) > 1 else ""
 
                         # Parse state and zip from last component
+                        # Normalize to uppercase for case-insensitive matching
                         state_zip_match = re.match(
-                            r"([A-Z]{2})\s*(\d{5}(?:-\d{4})?)?", state_zip.strip()
+                            r"([A-Z]{2})\s*(\d{5}(?:-\d{4})?)?", state_zip.strip().upper()
                         )
                         if state_zip_match:
                             state = state_zip_match.group(1)
@@ -111,8 +119,9 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                                 city = parts[-2].strip()
                             elif not city:
                                 # City might be in the state_zip before state abbr
+                                # Normalize to uppercase for case-insensitive matching
                                 city_match = re.match(
-                                    r"([A-Za-z\s]+)\s+[A-Z]{2}", state_zip
+                                    r"([A-Za-z\s]+)\s+[A-Z]{2}", state_zip.upper()
                                 )
                                 if city_match:
                                     city = city_match.group(1).strip()
@@ -143,7 +152,18 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps(response_json).encode('utf-8'))
 
+        except urllib.error.HTTPError as e:
+            # HTTP error from upstream - pass through status code
+            try:
+                self.send_response(e.code)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e), "upstream_code": e.code}).encode('utf-8'))
+            except (BrokenPipeError, ConnectionResetError):
+                # Client disconnected, nothing to send
+                pass
         except urllib.error.URLError as e:
+            # Network error (timeout, connection refused, DNS failure, etc.)
             try:
                 self.send_response(502)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -214,7 +234,18 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(response_json).encode('utf-8'))
 
+        except urllib.error.HTTPError as e:
+            # HTTP error from upstream - pass through status code
+            try:
+                self.send_response(e.code)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e), "upstream_code": e.code}).encode('utf-8'))
+            except (BrokenPipeError, ConnectionResetError):
+                # Client disconnected, nothing to send
+                pass
         except urllib.error.URLError as e:
+            # Network error (timeout, connection refused, DNS failure, etc.)
             try:
                 self.send_response(502)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
